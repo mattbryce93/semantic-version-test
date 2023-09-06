@@ -1,0 +1,62 @@
+name: Create a Release Candidate
+
+on:
+  push:
+    branches: 
+      - release/*
+  workflow_dispatch:
+            
+permissions:
+  contents: write
+  
+jobs:
+  determine-semantic-version:
+    name: determine-semantic-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Version
+        id: version
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: ""
+          version_from_branch: true
+          version_format: "${major}.${minor}.${patch}-rc.${increment}"
+
+      - name: Show Summary
+        run: |
+          echo '## Pull Request Report [View Run #${{ github.run_number }} ](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})' >> $GITHUB_STEP_SUMMARY
+          echo '| Summary       | Result        |' >> $GITHUB_STEP_SUMMARY
+          echo '| ------------- |:-------------:|' >> $GITHUB_STEP_SUMMARY
+          echo '| major | ${{ steps.version.outputs.major }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| minor | ${{ steps.version.outputs.minor }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| patch | ${{ steps.version.outputs.patch }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| increment | ${{ steps.version.outputs.increment }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| version_type | ${{ steps.version.outputs.version_type }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| version_format | ${{ steps.version.outputs.version_format }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| version_tag | ${{ steps.version.outputs.version_tag }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| changed | ${{ steps.version.outputs.changed }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| authors | ${{ steps.version.outputs.authors }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| current_commit | ${{ steps.version.outputs.current_commit }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| previous_commit | ${{ steps.version.outputs.previous_commit }} |' >> $GITHUB_STEP_SUMMARY
+          echo '| previous_version | ${{ steps.version.outputs.previous_version }} |' >> $GITHUB_STEP_SUMMARY
+      
+      - name: Push Semantic Version Tag to Repository
+        run: |
+          git config --global user.email ${{ github.actor }}
+          git config --global user.name ${{ github.actor }}
+          git fetch --tags --force
+          if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "tag already exists";
+          else
+            echo "tag does not exist"
+            git tag -a ${{ steps.version.outputs.version }} -m "${{ github.workflow }} ${{ github.job }} version ${{ steps.version.outputs.version }}"
+            git push origin --tags
+          fi
