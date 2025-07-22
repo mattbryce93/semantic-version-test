@@ -29,6 +29,8 @@ jobs:
           tag_prefix: ""
           version_from_branch: true
           version_format: "${major}.${minor}.${patch}-rc.${increment}"
+          minor_pattern: "b12254c3-c4a1-4292-a924-99ecbbf7a656"
+          major_pattern: "a2ec8714-5fd7-4310-adf6-0cd408cb8e9b"
 
       - name: Show Summary
         run: |
